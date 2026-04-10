@@ -1,1 +1,1 @@
-alert("This is a fitness gram pacer test")
+alert("This is a fitness gram pacer test, can you read this?")

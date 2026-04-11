@@ -1,3 +1,7 @@
 body {
-    background-color: blue;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Hide scrollbars and prevent them from appearing */
 }
+
+canvas { display: block; } /* remove extra space below canvas */

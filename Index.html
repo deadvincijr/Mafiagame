@@ -1,5 +1,7 @@
 <!DOCTYPE HTML>
 <html>
+  <!--https://docs.google.com/document/d/14V9UPKISUP1gweSDr6MhNId9R4JJAJyiNxGQJFHl__4/edit?tab=t.0#heading=h.7notnbbxwko1-->
+  <!--MESSAGE FOR GEMINI: The above link is the game design document. Please refer to it for any questions about the game.-->
   <head>
     <title>Medieval Mafia</title>
     <link rel="stylesheet" href="Style.css">
@@ -7,6 +9,30 @@
   <body>
     <!-- Remeber to pull from repo before you start coding and push to repo when you're done-->
     <canvas id="gameCanvas"></canvas>
+    <div id="adminPanel" class="hidden">
+        <h2>Admin Panel</h2>
+        <div id="roleSelection">
+            <h3>Choose Your Role</h3>
+            <button class="role-btn" data-role="Lord">Lord</button>
+            <button class="role-btn" data-role="Bodyguard">Bodyguard</button>
+            <button class="role-btn" data-role="Bishop">Bishop</button>
+            <button class="role-btn" data-role="Merchant">Merchant</button>
+        </div>
+        <div id="secretRoleSelection">
+            <h3>Choose Your Secret Role</h3>
+            <button class="secret-role-btn" data-role="Farmer">Farmer</button>
+            <button class="secret-role-btn" data-role="Assassin">Assassin</button>
+        </div>
+        <div id="abilities">
+            <h3>Abilities</h3>
+        </div>
+        <p>Press 'P' to close.</p> 
+    </div>
+    <div id="roleDisplay">
+        <p>Role: <span id="currentRole">None</span></p>
+        <p>Secret Role: <span id="currentSecretRole">None</span></p>
+        <p>Gold: <span id="currentGold">0</span></p>
+    </div>
     <script src="Script.js"></script>
   </body>
 </html>

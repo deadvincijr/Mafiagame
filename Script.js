@@ -8,6 +8,12 @@ window.onload = function() {
     const currentSecretRoleSpan = document.getElementById('currentSecretRole');
     const currentGoldSpan = document.getElementById('currentGold');
     const abilitiesContainer = document.getElementById('abilities');
+    const villagerPanel = document.getElementById('villagerPanel');
+    const controlledNpcNameSpan = document.getElementById('controlledNpcName');
+    const npcMoveUpBtn = document.getElementById('npcMoveUp');
+    const npcMoveDownBtn = document.getElementById('npcMoveDown');
+    const npcMoveLeftBtn = document.getElementById('npcMoveLeft');
+    const npcMoveRightBtn = document.getElementById('npcMoveRight');
 
     // Set canvas to full screen
     canvas.width = window.innerWidth;
@@ -26,6 +32,10 @@ window.onload = function() {
         gold: 0,
         baseGold: 0
     };
+
+    let controlledNpc = null;
+    const NPC_MOVE_SPEED = 5;
+    const npcMoveState = { up: false, down: false, left: false, right: false };
 
     // NPC array
     const npcs = [{
@@ -62,6 +72,19 @@ window.onload = function() {
 
         if (e.key.toLowerCase() === 'p') {
             adminPanel.classList.toggle('hidden');
+        }
+
+        if (e.key.toLowerCase() === 'v') {
+            villagerPanel.classList.toggle('hidden');
+            if (!villagerPanel.classList.contains('hidden')) {
+                // When opening the panel, find the nearest NPC to control
+                controlledNpc = getNearbyNPC();
+                if (controlledNpc) {
+                    controlledNpcNameSpan.textContent = controlledNpc.name;
+                } else {
+                    controlledNpcNameSpan.textContent = 'None (get closer to an NPC)';
+                }
+            }
         }
     });
 
@@ -113,6 +136,22 @@ window.onload = function() {
             console.log(`Secret Role changed to: ${player.secretRole}`);
         });
     });
+
+    npcMoveUpBtn.addEventListener('mousedown', () => npcMoveState.up = true);
+    npcMoveUpBtn.addEventListener('mouseup', () => npcMoveState.up = false);
+    npcMoveUpBtn.addEventListener('mouseleave', () => npcMoveState.up = false);
+
+    npcMoveDownBtn.addEventListener('mousedown', () => npcMoveState.down = true);
+    npcMoveDownBtn.addEventListener('mouseup', () => npcMoveState.down = false);
+    npcMoveDownBtn.addEventListener('mouseleave', () => npcMoveState.down = false);
+
+    npcMoveLeftBtn.addEventListener('mousedown', () => npcMoveState.left = true);
+    npcMoveLeftBtn.addEventListener('mouseup', () => npcMoveState.left = false);
+    npcMoveLeftBtn.addEventListener('mouseleave', () => npcMoveState.left = false);
+
+    npcMoveRightBtn.addEventListener('mousedown', () => npcMoveState.right = true);
+    npcMoveRightBtn.addEventListener('mouseup', () => npcMoveState.right = false);
+    npcMoveRightBtn.addEventListener('mouseleave', () => npcMoveState.right = false);
 
     function recalculatePlayerGold() {
         let currentGold = player.baseGold;
@@ -266,7 +305,7 @@ window.onload = function() {
 
     function update() {
         // Only allow player movement if the admin panel is hidden
-        if (adminPanel.classList.contains('hidden')) {
+        if (adminPanel.classList.contains('hidden') && villagerPanel.classList.contains('hidden')) {
             // Move player using Arrow keys or WASD
             if (keysPressed['arrowup'] || keysPressed['w']) {
                 player.y -= player.speed;
@@ -279,6 +318,21 @@ window.onload = function() {
             }
             if (keysPressed['arrowright'] || keysPressed['d']) {
                 player.x += player.speed;
+            }
+        }
+
+        if (!villagerPanel.classList.contains('hidden') && controlledNpc) {
+            if (npcMoveState.up) {
+                controlledNpc.y -= NPC_MOVE_SPEED;
+            }
+            if (npcMoveState.down) {
+                controlledNpc.y += NPC_MOVE_SPEED;
+            }
+            if (npcMoveState.left) {
+                controlledNpc.x -= NPC_MOVE_SPEED;
+            }
+            if (npcMoveState.right) {
+                controlledNpc.x += NPC_MOVE_SPEED;
             }
         }
 
@@ -332,6 +386,33 @@ window.onload = function() {
         // Restore the context to its original state
         ctx.restore();
     }
+
+    function npcrandommove(npc) {
+        let min = 1;
+        let max = 4;
+        // Renamed variable to avoid shadowing the function name
+        let randomMove = Math.floor(Math.random() * (max - min + 1)) + min;
+        if (randomMove === 1) {
+            npc.x += NPC_MOVE_SPEED;
+        } else if (randomMove === 2) {
+            npc.x -= NPC_MOVE_SPEED;
+        } else if (randomMove === 3) {
+            npc.y += NPC_MOVE_SPEED;
+        } else if (randomMove === 4) {
+            npc.y -= NPC_MOVE_SPEED;
+        }
+    }
+
+    // Use setInterval to safely loop the logic without freezing the browser
+    setInterval(() => {
+        if (villagerPanel.classList.contains('hidden')) {
+            npcs.forEach(npc => {
+                if (npc.isAlive) {
+                    npcrandommove(npc);
+                }
+            });
+        }
+    }, 100); // Runs every 100 milliseconds
 
     update();
 };

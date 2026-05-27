@@ -30,7 +30,8 @@ window.onload = function() {
         role: null,
         secretRole: null,
         gold: 0,
-        baseGold: 0
+        baseGold: 0,
+        currentBuilding: null
     };
 
     let controlledNpc = null;
@@ -48,6 +49,58 @@ window.onload = function() {
         gold: 100,
         isAlive: true
     }];
+
+    // Buildings array
+    const buildings = [
+        {
+            name: 'Tavern',
+            x: 400,
+            y: 100, // Placing it slightly north of the spawn point (1000, 1000)
+            width: 1200,
+            height: 850,
+            floorColor: '#8B4513', // Brown color for the floor
+            walls: [
+                { x: 400, y: 100, width: 1200, height: 40 }, // Top wall
+                { x: 400, y: 100, width: 40, height: 850 }, // Left wall
+                { x: 1560, y: 100, width: 40, height: 850 } // Right wall (Leaves the bottom side completely open)
+            ]
+        }
+    ];
+
+    // Helper function for AABB collision detection
+    function checkCollision(rect1, rect2) {
+        return (
+            rect1.x < rect2.x + rect2.width &&
+            rect1.x + rect1.width > rect2.x &&
+            rect1.y < rect2.y + rect2.height &&
+            rect1.y + rect1.height > rect2.y
+        );
+    }
+
+    // Entity movement with collision resolution
+    function moveEntity(entity, dx, dy) {
+        // Move X and Check Collision (allows horizontal wall sliding)
+        entity.x += dx;
+        buildings.forEach(building => {
+            building.walls.forEach(wall => {
+                if (checkCollision(entity, wall)) {
+                    if (dx > 0) entity.x = wall.x - entity.width;
+                    else if (dx < 0) entity.x = wall.x + wall.width;
+                }
+            });
+        });
+
+        // Move Y and Check Collision (allows vertical wall sliding)
+        entity.y += dy;
+        buildings.forEach(building => {
+            building.walls.forEach(wall => {
+                if (checkCollision(entity, wall)) {
+                    if (dy > 0) entity.y = wall.y - entity.height;
+                    else if (dy < 0) entity.y = wall.y + wall.height;
+                }
+            });
+        });
+    }
 
     // World object
     const world = {
@@ -304,41 +357,56 @@ window.onload = function() {
     }
 
     function update() {
+
+
+
         // Only allow player movement if the admin panel is hidden
         if (adminPanel.classList.contains('hidden') && villagerPanel.classList.contains('hidden')) {
-            // Move player using Arrow keys or WASD
+            let dx = 0;
+            let dy = 0;
+            // Move player using Arrow keys or WASD (UNLESS PLAYER IS TOUCHING A WALL, THEN ONLY ALLOW MOVEMENT AWAY FROM THE WALL OR SLIDING ALONG THE WALL)
             if (keysPressed['arrowup'] || keysPressed['w']) {
-                player.y -= player.speed;
+                dy -= player.speed;
             }
             if (keysPressed['arrowdown'] || keysPressed['s']) {
-                player.y += player.speed;
+                dy += player.speed;
             }
             if (keysPressed['arrowleft'] || keysPressed['a']) {
-                player.x -= player.speed;
+                dx -= player.speed;
             }
             if (keysPressed['arrowright'] || keysPressed['d']) {
-                player.x += player.speed;
+                dx += player.speed;
             }
+            
+            moveEntity(player, dx, dy);
         }
 
+
+
+
         if (!villagerPanel.classList.contains('hidden') && controlledNpc) {
-            if (npcMoveState.up) {
-                controlledNpc.y -= NPC_MOVE_SPEED;
-            }
-            if (npcMoveState.down) {
-                controlledNpc.y += NPC_MOVE_SPEED;
-            }
-            if (npcMoveState.left) {
-                controlledNpc.x -= NPC_MOVE_SPEED;
-            }
-            if (npcMoveState.right) {
-                controlledNpc.x += NPC_MOVE_SPEED;
-            }
+            let dx = 0;
+            let dy = 0;
+            if (npcMoveState.up) dy -= NPC_MOVE_SPEED;
+            if (npcMoveState.down) dy += NPC_MOVE_SPEED;
+            if (npcMoveState.left) dx -= NPC_MOVE_SPEED;
+            if (npcMoveState.right) dx += NPC_MOVE_SPEED;
+            
+            moveEntity(controlledNpc, dx, dy);
         }
 
         // World boundaries collision to prevent player from going off-map
         player.x = Math.max(0, Math.min(player.x, world.width - player.width));
         player.y = Math.max(0, Math.min(player.y, world.height - player.height));
+
+        // Determine if the player is currently inside any building
+        player.currentBuilding = null;
+        for (let i = 0; i < buildings.length; i++) {
+            if (checkCollision(player, buildings[i])) {
+                player.currentBuilding = buildings[i];
+                break;
+            }
+        }
 
         draw();
 
@@ -369,6 +437,25 @@ window.onload = function() {
             }
         }
 
+        // Draw buildings
+        buildings.forEach(building => {
+            // Draw floor
+            ctx.fillStyle = building.floorColor;
+            ctx.fillRect(building.x, building.y, building.width, building.height);
+            
+            // Draw walls
+            ctx.fillStyle = '#654321'; // Darker brown for walls
+            building.walls.forEach(wall => {
+                ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
+            });
+
+            // Draw building name
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.textAlign = 'center';
+            ctx.font = '60px sans-serif';
+            ctx.fillText(building.name, building.x + building.width / 2, building.y + building.height / 2);
+        });
+
         // Draw NPCs
         npcs.forEach(npc => {
             ctx.fillStyle = npc.isAlive ? npc.color : 'grey';
@@ -390,17 +477,21 @@ window.onload = function() {
     function npcrandommove(npc) {
         let min = 1;
         let max = 4;
+        let dx = 0;
+        let dy = 0;
         // Renamed variable to avoid shadowing the function name
         let randomMove = Math.floor(Math.random() * (max - min + 1)) + min;
         if (randomMove === 1) {
-            npc.x += NPC_MOVE_SPEED;
+            dx = NPC_MOVE_SPEED;
         } else if (randomMove === 2) {
-            npc.x -= NPC_MOVE_SPEED;
+            dx = -NPC_MOVE_SPEED;
         } else if (randomMove === 3) {
-            npc.y += NPC_MOVE_SPEED;
+            dy = NPC_MOVE_SPEED;
         } else if (randomMove === 4) {
-            npc.y -= NPC_MOVE_SPEED;
+            dy = -NPC_MOVE_SPEED;
         }
+        
+        moveEntity(npc, dx, dy);
     }
 
     // Use setInterval to safely loop the logic without freezing the browser
